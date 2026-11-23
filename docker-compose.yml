@@ -1,0 +1,46 @@
+# Production on a single server:  docker compose up -d --build
+# Needs a .env next to this file (see .env.example) and DOMAIN set for HTTPS.
+x-app: &app
+  build:
+    context: .
+    args:
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+  image: wa-ai-sales:latest
+  env_file: .env
+  restart: unless-stopped
+
+services:
+  web:
+    <<: *app
+    command: ["npm", "run", "start"]
+    expose: ["3000"]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+  # Owns the WhatsApp sockets, AI replies, reminders and customer follow-ups.
+  # Run exactly ONE worker: two would fight over the same WhatsApp sessions.
+  worker:
+    <<: *app
+    command: ["npm", "run", "worker"]
+    stop_grace_period: 20s
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on: [web]
+    ports: ["80:80", "443:443"]
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

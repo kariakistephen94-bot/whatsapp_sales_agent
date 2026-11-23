@@ -1,0 +1,17 @@
+node_modules
+.next
+.env
+uploads
+*.tsbuildinfo
+.next-build
+
+# local test credentials
+test-account.local.json
+
+.next-clean
+
+# WhatsApp gateway session & secrets
+gateway/node_modules
+gateway/sessions
+gateway/data
+gateway/.env

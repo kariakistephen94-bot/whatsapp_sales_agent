@@ -1,0 +1,5 @@
+# Automatic HTTPS for $DOMAIN (point its DNS A record at this server first).
+{$DOMAIN:localhost} {
+	encode gzip
+	reverse_proxy web:3000
+}
